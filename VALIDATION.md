@@ -51,3 +51,44 @@ CI validates the approved palette snapshot, exact master colors, generated SVG
 consistency, PNG dimensions and source/export hashes. The brand checks require
 only Python's standard library. Artwork export is an optional contributor step.
 The existing native Windows Terminal/WSL visual-review limits still apply.
+
+## Native developer prompt — 0.2.0 preview
+
+Local Zsh 5.9 checks passed on macOS 27.0.1 ARM64, including real Oh My Zsh
+loading and interactive failure/PWD preservation. The developer suite covers
+shared Git semantic fixtures; real counts, rename paths with newlines, detached
+and unborn branches, local ahead/behind, conflicts, merge/rebase/worktrees;
+hook coexistence, jobs/SSH; runtime relevance/cache invalidation; 40-column
+priorities; plain/ANSI/truecolor/icons and NO_COLOR; old receipt migration and
+unowned-file collisions. The original lightweight suite remains in place.
+
+Optional font tests use controlled local downloads and temporary directories.
+They cover checksum/partial-source failures before mutation, updates, repeat
+installation, third-party matching/conflicting fonts, local edits, linked paths,
+and separate ownership/uninstall. The four actual pinned upstream faces were
+also checked against the committed hashes in a temporary Mac font directory.
+No normal user font directory or shell configuration was changed.
+
+`python3 scripts/check-package.py` extracts the actual ZIP, installs into a
+temporary custom path, loads the installed developer prompt and uninstalls.
+Font binaries are explicitly forbidden in the archive.
+
+### Performance sample
+
+`python3 scripts/benchmark-prompt.py` separates cold shell startup + first prompt
+from warm rendering. This macOS sample used Zsh 5.9, 10 logical CPUs, 30 samples,
+local temporary storage and no runtime probes; large = 5,000 tracked files and
+1,000 untracked files. Medians (milliseconds):
+
+| Case | Cold shell + first prompt | Warm prompt |
+| --- | ---: | ---: |
+| Non-Git | 20.206 | 7.249 |
+| Clean Git | 23.362 | 9.416 |
+| Large Git | 38.661 | 26.147 |
+
+The largest observed warm large-repository render was 103.169 ms. These are
+diagnostic observations, not an instant-prompt performance promise. CI prints
+new macOS/Linux measurements; WSL/network filesystem performance is unverified.
+Use `BACUMI_GIT_DETAILS=0` to omit detailed scanning or `BACUMI_SHOW_GIT=0` to
+skip Git. Runtime probes are cached with a bounded expiry. Native macOS Terminal,
+iTerm2 and WSL visual/font review remains a separate manual acceptance step.

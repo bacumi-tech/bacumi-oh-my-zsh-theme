@@ -24,13 +24,17 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes zsh
       - run: python3 scripts/build.py --check
+      - run: python3 scripts/build-developer-preview.py --check
       - run: python3 scripts/build-icons.py --check
       - run: python3 scripts/check-brand.py
-      - run: sh -n install.sh && zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh
+      - run: sh -n install.sh install-font.sh && zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/prompt.zsh lib/developer-prompt.zsh
       - name: Prompt, installer and real Oh My Zsh integration
         env:
           BACUMI_OMZ_DIR: ${{ github.workspace }}/.upstream/ohmyzsh
         run: |
           zsh --version
           python3 -m unittest discover -s tests -v
+      - name: Diagnostic performance samples
+        run: python3 scripts/benchmark-prompt.py --samples 10
       - run: python3 scripts/package.py
+      - run: python3 scripts/check-package.py

@@ -16,10 +16,13 @@ source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 destination=$custom_dir/themes/bacumi
 marker=$destination/.bacumi-installed
 fail() { echo "$1" >&2; exit 1; }
-files='bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh'
+old_files='bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh'
+files="$old_files bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/developer-prompt.zsh"
+owned_files=$files
 manifest() {
   echo 'bacumi-oh-my-zsh-theme v1'
-  for file in $files; do
+  for file in $1; do
+    [ -f "$destination/$file" ] && [ ! -L "$destination/$file" ] || return 1
     printf '%s ' "$file"
     cksum < "$destination/$file"
   done
@@ -29,19 +32,27 @@ manifest() {
 if [ -e "$destination" ]; then
   [ -f "$marker" ] && [ ! -L "$marker" ] || fail "Folder is not owned by this installer: $destination"
   [ ! -L "$destination/lib" ] || fail 'Refusing linked library directory'
-  for file in $files; do
-    [ -f "$destination/$file" ] && [ ! -L "$destination/$file" ] || fail "Missing or linked file: $file"
-  done
-  actual=$(manifest)
   expected=$(cat "$marker")
-  [ "$actual" = "$expected" ] || fail 'Bacumi files were modified locally. Back up or move the installation before replacing it.'
+  # Historical v1 receipts own three files; verify that exact set before migration.
+  if actual=$(manifest "$files") && [ "$actual" = "$expected" ]; then
+    owned_files=$files
+  elif actual=$(manifest "$old_files") && [ "$actual" = "$expected" ]; then
+    owned_files=$old_files
+    if [ "$action" = install ]; then
+      for file in bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/developer-prompt.zsh; do
+        [ ! -e "$destination/$file" ] && [ ! -L "$destination/$file" ] || fail "Unowned file would be replaced: $file"
+      done
+    fi
+  else
+    fail 'Bacumi files were modified locally. Back up or move the installation before replacing it.'
+  fi
 elif [ "$action" = uninstall ]; then
   echo 'Bacumi is already uninstalled.'
   exit 0
 fi
 
 if [ "$action" = uninstall ]; then
-  for file in $files; do rm -- "$destination/$file"; done
+  for file in $owned_files; do rm -- "$destination/$file"; done
   rm -- "$marker"
   rmdir -- "$destination/lib" 2>/dev/null || :
   rmdir -- "$destination" 2>/dev/null || :
@@ -51,7 +62,8 @@ else
   for file in $files; do [ -f "$source_dir/$file" ] || fail "Missing release file: $file"; done
   mkdir -p -- "$destination/lib"
   for file in $files; do cp -- "$source_dir/$file" "$destination/$file"; done
-  manifest > "$marker"
+  manifest "$files" > "$marker"
   printf 'Installed Dark and Light into %s\n' "$destination"
+  echo 'Developer: ZSH_THEME="bacumi/bacumi-developer-dark" or "bacumi/bacumi-developer-light".'
   echo 'Set ZSH_THEME="bacumi/bacumi-dark" or "bacumi/bacumi-light" in .zshrc, then open a new shell.'
 fi

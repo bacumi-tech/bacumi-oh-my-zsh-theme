@@ -62,6 +62,9 @@ _bacumi_precmd() {
 
 setopt prompt_subst prompt_percent
 autoload -Uz add-zsh-hook
+# Clean interactive switches from the developer appearance.
+add-zsh-hook -d precmd _bacumi_developer_precmd
+add-zsh-hook -d preexec _bacumi_developer_preexec
 add-zsh-hook -d precmd _bacumi_precmd
 add-zsh-hook precmd _bacumi_precmd
 typeset -g _bacumi_prompt='> '

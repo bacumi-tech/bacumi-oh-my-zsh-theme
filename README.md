@@ -6,21 +6,34 @@
   <h1>Bacumi for Oh My Zsh</h1>
   <p>A focused shell prompt, in Dark and Light.</p>
   <p>
-    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.1.1">Download 0.1.1 preview</a> ·
+    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.0">Download 0.2.0 preview</a> ·
     <a href="#installation">Installation</a> ·
     <a href="BRAND.md">Brand and icons</a> ·
     <a href="LICENSE">MIT license</a>
   </p>
 </div>
 
-Bacumi puts your directory, Git state and last command result in one compact
-prompt. Warm accents and coordinated Dark/Light variants bring the Bacumi palette
-to your shell, with a standard-font design.
+Bacumi brings focused developer information to Zsh: your directory, detailed Git
+state, relevant runtimes and command results. Dark and Light follow the Bacumi
+palette. Choose a two-line developer prompt, compact layout or the original
+lightweight prompt; all work with a standard font.
 
 **Preview release.** Automated prompt and installer checks run on macOS and Linux.
 WSL-specific visual review remains pending; see [validation](VALIDATION.md).
 
-## Preview
+## Developer prompt preview
+
+<table>
+  <tr><th>Dark</th><th>Light</th></tr>
+  <tr>
+    <td width="50%"><img src="assets/developer-dark.svg" width="440" alt="Illustrated Dark developer prompt"></td>
+    <td width="50%"><img src="assets/developer-light.svg" width="440" alt="Illustrated Light developer prompt"></td>
+  </tr>
+</table>
+
+Illustrations of the native developer layout, not terminal screenshots.
+
+## Palette and lightweight preview
 
 <table>
   <tr><th>Bacumi Dark</th><th>Bacumi Light</th></tr>
@@ -36,7 +49,13 @@ Illustrated prompt previews, not native terminal screenshots.
 | --- | --- |
 | Directory | Current path, shortened to fit the window |
 | `git:main` | Current Git branch |
-| `*` | Staged, unstaged or untracked changes |
+| `+2 ~1 ?3` | 2 staged, 1 unstaged and 3 untracked files |
+| `conflict:1` | 1 conflicted file |
+| `ahead:2 behind:1` | Commit counts against the locally known upstream |
+| `merge` / `rebase` | Git operation in progress |
+| `node:22…` | Active runtime version for a relevant project |
+| `3.2s` | Previous command took at least two seconds |
+| `*` | Any changes, in the original lightweight prompt |
 | `git:@abc1234` | Detached HEAD, identified by commit prefix |
 | `!1` | The previous command exited with status 1 |
 
@@ -51,8 +70,8 @@ Installation from ZIP requires no Git, special font or package manager.
 
 ### 1. Download and extract
 
-Download [bacumi-oh-my-zsh-theme-0.1.1.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.1.1/bacumi-oh-my-zsh-theme-0.1.1.zip)
-from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.1.1).
+Download [bacumi-oh-my-zsh-theme-0.2.0.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.2.0/bacumi-oh-my-zsh-theme-0.2.0.zip)
+from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.0).
 Extract the ZIP and open a terminal in the folder containing `install.sh`.
 
 To verify the ZIP first, download `SHA256SUMS` from the same release into the ZIP's
@@ -93,14 +112,18 @@ In `~/.zshrc`, replace the current `ZSH_THEME` assignment with one of these
 **before** the line that sources Oh My Zsh:
 
 ```zsh
-ZSH_THEME="bacumi/bacumi-dark"
+ZSH_THEME="bacumi/bacumi-developer-dark"
 ```
 
 For a light terminal background, use:
 
 ```zsh
-ZSH_THEME="bacumi/bacumi-light"
+ZSH_THEME="bacumi/bacumi-developer-light"
 ```
+
+For the original lightweight prompt, choose `bacumi/bacumi-dark` or
+`bacumi/bacumi-light` instead. Existing selections keep their layout after an
+update. The installer safely upgrades the original three-file installation.
 
 Open a new terminal window. In a Git repository, the prompt should display your
 branch. Run `false` to check that `!1` appears in the next prompt.
@@ -120,6 +143,41 @@ sh install.sh
 Then select the theme as above. The installed files are independent of the
 checkout; after `git pull`, rerun `sh install.sh` to update them.
 
+## Optional step: install the font
+
+The prompt works without a special font. For optional icons, from the extracted
+release folder run:
+
+```sh
+sh install-font.sh
+```
+
+This optional step requires `curl` and `shasum` or `sha256sum` (included on
+macOS and common Linux installations). It downloads four pinned **MesloLGS NF**
+faces over HTTPS and verifies every
+SHA-256 before installation. It installs per user into `~/Library/Fonts` on
+macOS, or `${XDG_DATA_HOME:-~/.local/share}/fonts` on Linux. The font retains its
+[upstream license](fonts/LICENSE-MesloLGS-NF.txt), [Apache 2.0 license](fonts/Apache-2.0.txt)
+and [copyright notices](fonts/NOTICE.txt). No font binaries ship in the ZIP.
+
+Select **MesloLGS NF** in Apple Terminal's **Settings → Profiles → Font**, or
+iTerm2's **Settings → Profiles → Text → Font**, then enable `BACUMI_PROMPT_ICONS=1`
+before loading the developer theme. Font selection is manual. Under WSL with
+Windows Terminal, use the Windows companion's `Install-Font.ps1` on the Windows
+host, because Windows Terminal renders with Windows fonts.
+
+To remove only fonts owned by this installer:
+
+```sh
+sh install-font.sh --uninstall
+```
+
+Matching pre-existing fonts stay unowned and are retained. Modified or conflicting
+files stop installation/removal. A custom font directory can be passed with
+`--font-dir PATH`; use the same path when uninstalling. `--source-dir PATH`
+and `--manifest PATH` support offline verification and isolated contributor tests.
+Only use trusted manifests; the bundled manifest pins the reviewed upstream files.
+
 ## Customize
 
 Place optional settings in `.zshrc` before Oh My Zsh is sourced:
@@ -130,15 +188,21 @@ BACUMI_COLOR_MODE=auto  # Detect truecolor; otherwise use ANSI colors
 # BACUMI_COLOR_MODE=ansi
 # BACUMI_COLOR_MODE=none
 # BACUMI_SHOW_GIT=0     # Disable Git checks in large repositories
+# BACUMI_GIT_DETAILS=0  # Omit file counts and untracked scanning
+# BACUMI_PROMPT_LAYOUT=compact
+# BACUMI_PROMPT_ICONS=1 # After selecting MesloLGS NF
+# BACUMI_SHOW_RUNTIMES=0
+# BACUMI_RUNTIME_CACHE_SECONDS=300
 ```
 
-`TERM=dumb` always uses plain text. ANSI mode follows your terminal's palette;
+`TERM=dumb` or a nonempty `NO_COLOR` always uses plain text. ANSI mode follows your terminal's palette;
 truecolor mode uses the exact Bacumi prompt colors. Choose the appearance that
 matches your terminal background; the prompt does not change that background.
 A window at least 40 columns wide is recommended.
 
-The theme sets the left prompt, clears the right prompt and registers one
-`precmd` hook. For coordinated output under WSL, pair it with
+The theme sets the left prompt and clears the right prompt. The developer
+variant adds native command-start/end hooks for timing; reloading does not
+duplicate its hooks. For coordinated output under WSL, pair it with
 [Bacumi for Windows Terminal](https://github.com/bacumi-tech/bacumi-windows-terminal-theme).
 
 ## Update and uninstall
@@ -178,12 +242,15 @@ fixtures. Standard checks use no third-party Python packages or private reposito
 
 ```sh
 python3 scripts/build.py --check
+python3 scripts/build-developer-preview.py --check
 python3 scripts/build-icons.py --check
 python3 scripts/check-brand.py
-sh -n install.sh
+sh -n install.sh install-font.sh
 zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh
 python3 -m unittest discover -s tests -v
 python3 scripts/package.py
+python3 scripts/check-package.py
+python3 scripts/benchmark-prompt.py
 ```
 
 Set `BACUMI_OMZ_DIR` to a real Oh My Zsh checkout to also run framework-loading
@@ -209,7 +276,8 @@ non-sensitive example.
 Themes, palette, code, documentation and original product icons are covered by
 the [MIT License](LICENSE). Bacumi names identify this project; trademark rights
 and endorsement of forks are not granted. The theme makes no runtime network
-requests and collects no telemetry.
+requests and collects no telemetry. The optional font installer accesses only the
+explicit download URLs; its downloaded font retains its upstream license.
 
 Built using [Oh My Zsh's custom theme mechanism](https://github.com/ohmyzsh/ohmyzsh/wiki/Customization)
 and [Zsh prompt expansion](https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html).
