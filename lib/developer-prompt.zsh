@@ -5,6 +5,11 @@
 # no directory, branch, environment or command text is evaluated by zpty.
 _bacumi_developer_probe_worker() {
   emulate -L zsh
+  # This fork is a probe, not a terminal session. Inherited session-saving
+  # hooks can write after our exit frame or save a snapshot of worker state.
+  builtin unfunction zshexit TRAPEXIT 2>/dev/null
+  typeset -ga zshexit_functions=()
+  builtin trap - EXIT
   unsetopt monitor 2>/dev/null
   export GIT_TERMINAL_PROMPT=0 GIT_OPTIONAL_LOCKS=0 GOTOOLCHAIN=local
   export RUSTUP_AUTO_INSTALL=0 RUSTUP_SKIP_UPDATE_CHECK=1

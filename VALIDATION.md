@@ -136,3 +136,18 @@ A separate read-only cycle through the user's reported .NET project used the
 actual installed tools, isolated startup configuration and `git`/`extract`
 plugins. Dark/Light returned after `cd` in 154/194 ms, with PWD/status and return
 directory verified. No project or normal shell configuration was changed.
+
+## 0.3.1 — inherited exit-hook isolation
+
+The user's session reproduced successful short Git probes but failed NUL-delimited
+porcelain-v2 probes. A local reproducer with inherited `zshexit` functions or
+`zshexit_functions` reproduced probe corruption: terminal session-save output
+could follow the nonce-framed exit record. Workers also ran parent session hooks,
+which must not save worker state as an interactive terminal session.
+
+The worker now removes inherited exit functions, hook arrays and EXIT traps only
+in its fork. Tests verify exact NUL payload recovery and that parent hooks still
+run exactly once. Installed-theme controlling-terminal tests use real Git with
+staged, unstaged and untracked files plus a simulated terminal session-save hook,
+in both Dark and Light. Existing shared deadlines and unknown-status fallback
+remain unchanged. Native emulator visual/font review is still separate.

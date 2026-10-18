@@ -317,6 +317,36 @@ preexec_functions+=(bacumi_test_preexec)
         self.assertIn("STATUS=1\r\n", session.command("printf '\\x53\\x54\\x41\\x54\\x55\\x53=%s\\n' \"$?\""))
         self.assertIn("JOBS=0\r\n", session.command("printf '\\x4a\\x4f\\x42\\x53=%s\\n' \"${#jobstates}\""))
 
+    def test_real_git_status_with_terminal_session_exit_hooks(self):
+        real_git = shutil.which("git")
+        wrapper = self.tools / "git"
+        wrapper.write_text("#!/bin/sh\nexec " + shlex.quote(real_git) + ' "$@"\n')
+        project = self.cwd / "real git project"
+        project.mkdir()
+        def git(*args):
+            subprocess.run([real_git, "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", *args],
+                           cwd=project, check=True, capture_output=True, timeout=5)
+        git("init", "--initial-branch=fixture-main")
+        (project / "tracked").write_text("original\n")
+        git("add", "tracked")
+        git("-c", "user.name=Bacumi", "-c", "user.email=tests@example.invalid", "commit", "-m", "fixture")
+        (project / "tracked").write_text("changed\n")
+        (project / "staged").write_text("staged\n")
+        git("add", "staged")
+        (project / "untracked").write_text("untracked\n")
+        for mode in ("dark", "light"):
+            with self.subTest(mode=mode):
+                session = self.start(mode)
+                # The macOS temporary path is long; leave room for all counts.
+                session.resize(240)
+                session.command("bacumi_session_exit() { print -r -- 'Saving session...'; }; add-zsh-hook zshexit bacumi_session_exit")
+                output = session.command("cd -- " + shlex.quote(str(project)))
+                self.assertIn("git:fixture-main +1 ~1 ?1", output)
+                self.assertNotIn("status:?", output)
+                self.assertNotIn("Saving session...", output)
+                self.assert_pwd(session, project)
+                session.close()
+
     def test_timed_out_probe_kills_children_without_polluting_jobs(self):
         project = self.cwd / "process-tree"
         project.mkdir()

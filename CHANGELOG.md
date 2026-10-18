@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — 2026-10-18 (preview)
+
+- Prevent native probes from inheriting terminal session-save and shell exit hooks.
+  Their output could corrupt the framed Git result and leave `status:?` visible.
+- Keep all exit hooks intact in the parent interactive shell.
+- Add real-Git controlling-terminal coverage in Dark/Light and regressions for
+  direct exit functions, hook arrays and EXIT traps.
+
 ## 0.3.0 — 2026-10-18 (preview)
 
 - Add original Bacumi padded segments in Dark/Light with readable ANSI fallback.

@@ -58,6 +58,32 @@ print -r -- "timeout=$?"
             except ProcessLookupError:pass
         self.assertFalse(alive,'Probe left a background child after successful version output')
 
+    def test_probe_does_not_run_parent_shell_exit_hooks(self):
+        # Native terminal session saving and custom hooks can write after the
+        # worker's NUL-framed exit status, making a successful probe look timed out.
+        for setup in (
+            'zshexit() { bacumi_fixture_exit; }',
+            'add-zsh-hook zshexit bacumi_fixture_exit',
+            "trap 'bacumi_fixture_exit' EXIT",
+        ):
+            with self.subTest(setup=setup):
+                log=self.root/'exit hooks'
+                if log.exists():log.unlink()
+                script='''bacumi_fixture_exit() {
+  builtin print -r -- called >> "$EXIT_LOG"
+  builtin print -r -- 'Saving session...'
+  builtin print -r -- 'Saving history...' >&2
+}
+'''+setup+'''
+_bacumi_developer_probe 4096 /bin/sh -c 'printf "record\\000final\\000"'
+builtin print -r -- "code=$?"
+[[ $_bacumi_developer_probe_output == $'record\\0final\\0' ]] && builtin print -r -- exact
+'''
+                result=self.run_zsh(script,{'EXIT_LOG':str(log)})
+                self.assertEqual(result.stdout,b'code=0\nexact\nSaving session...\n',result.stderr)
+                self.assertEqual(log.read_text().splitlines(),['called'],
+                                 'Only the parent shell should run its exit hook')
+
     def test_head_fallback_without_git_and_rejection_of_malformed_records(self):
         git=self.root/'.git';git.mkdir()
         for text,expected in [('ref: refs/heads/main\n','git:main status:?'),('a'*40+'\n','git:@aaaaaaa status:?'),('b'*64+'\n','git:@bbbbbbb status:?'),('abc\n',None),('ref: refs/heads/'+'a'*600+'\n',None)]:
