@@ -260,6 +260,10 @@ preexec_functions+=(bacumi_test_preexec)
         output = session.read_until()
         self.assertIn("multiline\r\n日本語\r\n", output)
         session.send("unexecuted partial command")
+        # PROMPT is printed before ZLE enables input. Wait for the editor to
+        # echo this buffer before Ctrl-C; otherwise the terminal driver can
+        # flush both writes before ZLE sees either, especially on Linux.
+        session.read_until(b"partial command")
         session.send(b"\x03")
         session.read_until()
         self.assert_pwd(session, project)
