@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 — 2026-10-18 (preview)
 
 - Add readable failure summaries beside developer prompt exit codes in Dark/Light.
 - Let compact failure prompts use two lines when needed to retain Git state and
