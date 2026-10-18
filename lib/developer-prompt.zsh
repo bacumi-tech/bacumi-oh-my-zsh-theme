@@ -1,9 +1,91 @@
 # Bacumi native developer prompt · MIT License · Copyright (c) 2026 Bacumi
 # All external text is escaped at the rendering boundary, never evaluated.
+
+# zpty receives only this fixed function name. Arguments stay in a quoted array;
+# no directory, branch, environment or command text is evaluated by zpty.
+_bacumi_developer_probe_worker() {
+  emulate -L zsh
+  unsetopt monitor 2>/dev/null
+  export GIT_TERMINAL_PROMPT=0 GIT_OPTIONAL_LOCKS=0 GOTOOLCHAIN=local
+  export RUSTUP_AUTO_INSTALL=0 RUSTUP_SKIP_UPDATE_CHECK=1
+  export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+  builtin print -rn -- $'\0BACUMI_PID_'"$_bacumi_developer_probe_token=$sysparams[pid]"$'\0'
+  "${_bacumi_developer_probe_argv[@]}" </dev/null 2>/dev/null
+  builtin print -rn -- $'\0BACUMI_EXIT_'"$_bacumi_developer_probe_token=$?"$'\0'
+}
+
+# Every probe gets an isolated terminal/process group, never the user's input.
+# A shared deadline bounds the full prompt's Git + runtime probes. All group
+# members are terminated after success or failure, even if a tool leaves a child.
+_bacumi_developer_probe() {
+  emulate -L zsh
+  local -i limit=$1 descriptor=-1 worker=0 created=0 finished=0 code=124 read_code ticks
+  shift
+  local -a _bacumi_developer_probe_argv=("$@")
+  local _bacumi_developer_probe_token="${RANDOM}_${RANDOM}_${RANDOM}_${RANDOM}_$EPOCHREALTIME"
+  local pid_marker=$'\0BACUMI_PID_'"$_bacumi_developer_probe_token=" exit_marker=$'\0BACUMI_EXIT_'"$_bacumi_developer_probe_token="
+  local name="_bacumi_probe_$sysparams[pid]" data='' chunk='' suffix='' prefix='' REPLY
+  local -F remaining deadline=${_bacumi_developer_probe_deadline:-$(( EPOCHREALTIME + 0.18 ))}
+  typeset -g _bacumi_developer_probe_output=''
+  (( deadline > EPOCHREALTIME )) || return 124
+  {
+    if builtin zpty -b "$name" _bacumi_developer_probe_worker; then
+      created=1; descriptor=$REPLY
+      while (( (remaining = deadline - EPOCHREALTIME) > 0 )); do
+        chunk=''
+        builtin zpty -r -t "$name" chunk
+        read_code=$?
+        (( read_code == 0 )) && data+=$chunk
+        if (( worker == 0 )) && [[ $data == "$pid_marker"*$'\0'* ]]; then
+          prefix=${data#"$pid_marker"}
+          prefix=${prefix%%$'\0'*}
+          if [[ $prefix == <-> ]] && (( prefix > 1 )); then worker=$prefix
+          else break
+          fi
+          data=${data#"$pid_marker$prefix"$'\0'}
+        fi
+        (( ${#data} <= limit + 128 )) || break
+        suffix=${data##*"$exit_marker"}
+        if [[ $suffix == <->$'\0' ]]; then
+          code=${suffix%$'\0'}
+          data=${data%"$exit_marker"*}
+          (( ${#data} <= limit )) && finished=1
+          break
+        fi
+        (( read_code == 2 )) && break
+        if (( read_code != 0 )); then
+          ticks=$(( remaining*100 )); (( ticks < 1 )) && ticks=1
+          builtin zselect -r $descriptor -t $ticks >/dev/null 2>&1
+        fi
+      done
+    fi
+  } always {
+    (( worker > 1 )) && builtin kill -KILL -- -$worker 2>/dev/null
+    (( created )) && builtin zpty -d "$name" 2>/dev/null
+  }
+  (( finished )) || return 124
+  # PTY output converts LF to CRLF; metadata and Git records use NUL framing.
+  (( code == 0 )) && _bacumi_developer_probe_output=${data//$'\r\n'/$'\n'}
+  return $code
+}
+
+_bacumi_developer_sanitize() {
+  emulate -L zsh
+  local character clean='' codepoint
+  for character in ${(s::)1}; do
+    builtin printf -v codepoint '%d' "'$character"
+    if (( codepoint < 32 || (codepoint >= 127 && codepoint <= 159) || codepoint == 0x061c ||
+          (codepoint >= 0x200b && codepoint <= 0x200f) || (codepoint >= 0x2028 && codepoint <= 0x202e) ||
+          (codepoint >= 0x2060 && codepoint <= 0x206f) || codepoint == 0xfeff )); then clean+='?'
+    else clean+=$character
+    fi
+  done
+  REPLY=$clean
+  return 0
+}
+
 _bacumi_developer_escape() {
-  REPLY=${1//[[:cntrl:]]/?}
-  # Directional and zero-width controls can conceal command/path text.
-  REPLY=${REPLY//[$'\u061c'$'\u200b'-$'\u200f'$'\u2028'-$'\u202e'$'\u2060'-$'\u206f'$'\ufeff']/?}
+  _bacumi_developer_sanitize "$1"
   REPLY=${REPLY//\%/%%}
   [[ $_bacumi_developer_bang == on ]] && REPLY=${REPLY//\!/!!}
   return 0
@@ -15,7 +97,7 @@ _bacumi_developer_parse_git() {
   local record xy oid='' data=$1
   local -a records
   local -i skip=0
-  _bacumi_developer_git=(branch '' unborn 0 detached 0 staged 0 unstaged 0 untracked 0 conflicts 0 ahead '' behind '')
+  _bacumi_developer_git=(branch '' unborn 0 detached 0 staged 0 unstaged 0 untracked 0 conflicts 0 ahead '' behind '' unavailable 0)
   if [[ $data == *$'\0'* ]]; then records=("${(@0)data}"); else records=("${(@f)data}"); fi
   for record in "${records[@]}"; do
     if (( skip )); then skip=0; continue; fi
@@ -48,6 +130,7 @@ _bacumi_developer_operation() {
   emulate -L zsh
   local directory=$PWD gitdir='' entry
   REPLY=''
+  typeset -g _bacumi_developer_git_dir=''
   if [[ -n $GIT_DIR ]]; then
     gitdir=${GIT_DIR:A}
   else
@@ -63,6 +146,7 @@ _bacumi_developer_operation() {
     done
   fi
   [[ -n $gitdir ]] || return 0
+  _bacumi_developer_git_dir=$gitdir
   if [[ -d $gitdir/rebase-merge || -d $gitdir/rebase-apply ]]; then REPLY=rebase
   elif [[ -f $gitdir/MERGE_HEAD ]]; then REPLY=merge
   fi
@@ -97,12 +181,13 @@ _bacumi_developer_runtimes() {
       case ${file:t} in
         .node-version|.nvmrc|.python-version|rust-toolchain|rust-toolchain.toml|global.json)
           version_file_text=''
-          IFS= read -r -k 512 version_file_text < "$file" 2>/dev/null
+          IFS= builtin read -r -u 0 -k 512 version_file_text < "$file" 2>/dev/null
           signature+="$version_file_text;" ;;
       esac fi
   done
   local -i ttl=${BACUMI_RUNTIME_CACHE_SECONDS:-300}
   (( ttl < 1 )) && ttl=300
+  local -F _bacumi_developer_probe_deadline=${_bacumi_developer_probe_deadline:-$(( EPOCHREALTIME + 0.18 ))}
   for kind in ${(u)kinds}; do
     case $kind in
       node) executable=${commands[node]} ;;
@@ -113,11 +198,14 @@ _bacumi_developer_runtimes() {
     esac
     [[ -n $executable ]] || continue
     cachekey="$kind|$PWD|$root|$PATH|$executable|$VIRTUAL_ENV|$CONDA_PREFIX|$PYENV_VERSION|$RUSTUP_TOOLCHAIN|$DOTNET_ROOT|$signature"
-    if [[ ${_bacumi_developer_cache_key[$kind]} != $cachekey ]] || (( EPOCHSECONDS - ${_bacumi_developer_cache_time[$kind]:-0} >= ttl )); then
+    local -i effective_ttl=$ttl
+    [[ -n ${_bacumi_developer_cache_version[$kind]} ]] || effective_ttl=2
+    if [[ ${_bacumi_developer_cache_key[$kind]} != $cachekey ]] || (( EPOCHSECONDS - ${_bacumi_developer_cache_time[$kind]:-0} >= effective_ttl )); then
       case $kind in
-        node|python|rust|dotnet) version=$("$executable" --version 2>/dev/null) ;;
-        go) version=$("$executable" version 2>/dev/null) ;;
+        node|python|rust|dotnet) _bacumi_developer_probe 4096 "$executable" --version ;;
+        go) _bacumi_developer_probe 4096 "$executable" version ;;
       esac
+      version=$_bacumi_developer_probe_output
       # Bound output and accept only the version token, not arbitrary tool banners.
       version=${version%%$'\n'*}
       case $kind in
@@ -149,6 +237,7 @@ _bacumi_developer_precmd() {
   local -i last_exit=$?
   local _bacumi_developer_bang=$options[promptbang]
   emulate -L zsh
+  local -F _bacumi_developer_probe_deadline=$(( EPOCHREALTIME + 0.18 ))
   local -F elapsed=0
   [[ -n $_bacumi_developer_started ]] && elapsed=$(( EPOCHREALTIME - _bacumi_developer_started ))
   _bacumi_developer_started=''
@@ -157,15 +246,40 @@ _bacumi_developer_precmd() {
   (( width < 1 )) && width=80
   [[ $PWD == "$HOME" || $PWD == "$HOME/"* ]] && directory="~${PWD#"$HOME"}"
   _bacumi_developer_parse_git ''
-  if (( $+commands[git] )) && [[ ${BACUMI_SHOW_GIT:-1} != 0 ]]; then
+  if [[ ${BACUMI_SHOW_GIT:-1} != 0 ]]; then
     local untracked=normal
     [[ ${BACUMI_GIT_DETAILS:-1} == 0 ]] && untracked=no
-    git_output=$(command git --no-optional-locks -c core.fsmonitor=false status --porcelain=v2 -z --branch --ignore-submodules=dirty --untracked-files=$untracked 2>/dev/null)
-    if (( $? == 0 )); then
+    local -i git_exit=127
+    if (( $+commands[git] )); then
+      _bacumi_developer_probe 262144 "$commands[git]" --no-optional-locks -c core.fsmonitor=false status --porcelain=v2 -z --branch --ignore-submodules=dirty --untracked-files=$untracked
+      git_exit=$?
+      git_output=$_bacumi_developer_probe_output
+    fi
+    if (( git_exit == 0 )); then
       _bacumi_developer_parse_git "$git_output"
       branch=${_bacumi_developer_git[branch]}
       (( _bacumi_developer_git[detached] )) && branch="@$branch"
       _bacumi_developer_operation; operation=$REPLY
+    else
+      # A slow/unavailable status must not pretend the checkout is clean or
+      # erase its location. HEAD is a small local metadata file, not another Git probe.
+      _bacumi_developer_operation; operation=$REPLY
+      if [[ -n $_bacumi_developer_git_dir && -f $_bacumi_developer_git_dir/HEAD ]]; then
+        local head_text=''
+        IFS= builtin read -r -u 0 -k 512 head_text < "$_bacumi_developer_git_dir/HEAD" 2>/dev/null
+        local -i head_read=$?
+        # Successful read means all 512 requested characters were present;
+        # reject a possibly truncated record instead of inventing a branch.
+        if (( head_read != 0 )); then
+          head_text=${head_text%$'\n'}
+          if [[ $head_text == 'ref: refs/heads/'?* ]]; then
+            local head_branch=${head_text#ref: refs/heads/}
+            [[ $head_branch != *[[:cntrl:][:space:]]* ]] && branch=$head_branch
+          elif (( ${#head_text} == 40 || ${#head_text} == 64 )) && [[ $head_text != *[^0-9a-f]* ]]; then branch="@${head_text[1,7]}"
+          fi
+        fi
+        [[ -n $branch ]] && _bacumi_developer_git[unavailable]=1
+      fi
     fi
   fi
   _bacumi_developer_runtimes; runtimes=$REPLY
@@ -174,66 +288,118 @@ _bacumi_developer_precmd() {
   [[ -n $SSH_CONNECTION || -n $SSH_TTY || $EUID == 0 ]] && context="${USER:-${USERNAME:-user}}@${HOST%%.*}"
   (( jobs_count )) && context+="${context:+  }jobs:$jobs_count"
 
-  local -A color
+  # Sanitize before measuring so replacement glyphs are included in widths.
+  _bacumi_developer_sanitize "$directory"; directory=$REPLY
+  _bacumi_developer_sanitize "$branch"; branch=$REPLY
+  _bacumi_developer_sanitize "$runtimes"; runtimes=$REPLY
+  _bacumi_developer_sanitize "$context"; context=$REPLY
+  # Padded, separate Bacumi badges. Width budgets include every space.
+  local -A style
+  local reset='' marker_style=''
   if [[ $TERM == dumb || -n $NO_COLOR || ${BACUMI_COLOR_MODE:-auto} == none ]]; then
-    color=(accent '' directory '' git '' error '' muted '' reset '')
+    style=(directory '' git '' context '' error '')
   elif [[ ${BACUMI_COLOR_MODE:-auto} == truecolor || ( ${BACUMI_COLOR_MODE:-auto} == auto && ( $COLORTERM == (truecolor|24bit) || $TERM == *direct* ) ) ]]; then
-    local role
-    for role in ${(k)_bacumi_palette}; do color[$role]="%F{${_bacumi_palette[$role]}}"; done
-    color[reset]='%f'
+    style[directory]="%F{$_bacumi_palette[background]}%K{$_bacumi_palette[accent]}"
+    style[git]="%F{$_bacumi_palette[background]}%K{$_bacumi_palette[git]}"
+    style[context]="%F{$_bacumi_palette[foreground]}%K{$_bacumi_palette[selection]}"
+    style[error]="%F{$_bacumi_palette[background]}%K{$_bacumi_palette[error]}"
+    marker_style="%F{$_bacumi_palette[accent]}"; reset='%k%f'
   else
-    color=(accent '%F{yellow}' directory '%F{blue}' git '%F{green}' error '%F{red}' muted '%F{white}' reset '%f')
+    # Reverse against the default surface: ANSI black/white may themselves be
+    # accessible text colors, so neither is a reliable contrasting badge ink.
+    style=(directory '%F{yellow}%k%S' git '%F{green}%k%S' context '%F{8}%k%S' error '%F{red}%k%S')
+    marker_style='%F{yellow}'; reset='%s%k%f'
   fi
-  local marker='>' critical='' detail='' firstline='' secondline='' gitcolor=$color[git]
+  local marker='>' failure='' firstline='' inputline='' gittext='' git_suffix=''
   [[ ${BACUMI_PROMPT_ICONS:-0} == 1 ]] && marker='❯'
-  if (( _bacumi_developer_git[conflicts] )); then
-    critical="conflict:${_bacumi_developer_git[conflicts]}"; gitcolor=$color[error]
+  [[ -n $result ]] && failure=$result
+  local -i input_width=$(( ${(m)#marker} + 1 ))
+  [[ -n $failure ]] && (( input_width+=${(m)#failure}+3 ))
+  local -i content_width=$(( width - 1 ))
+  [[ ${BACUMI_PROMPT_LAYOUT:-developer} == compact ]] && (( content_width-=input_width+1 ))
+  (( content_width < 8 )) && content_width=8
+  (( _bacumi_developer_git[conflicts] )) && git_suffix=" conflict:${_bacumi_developer_git[conflicts]}"
+  (( _bacumi_developer_git[unavailable] )) && git_suffix+=' status:?'
+  if [[ -n $operation ]] && (( content_width >= 11+${(m)#git_suffix}+${(m)#operation} )); then
+    git_suffix+=" $operation"
   fi
-  if [[ ${BACUMI_GIT_DETAILS:-1} != 0 ]]; then
-    (( _bacumi_developer_git[staged] )) && detail+=" +${_bacumi_developer_git[staged]}"
-    (( _bacumi_developer_git[unstaged] )) && detail+=" ~${_bacumi_developer_git[unstaged]}"
-    (( _bacumi_developer_git[untracked] )) && detail+=" ?${_bacumi_developer_git[untracked]}"
-    [[ ${_bacumi_developer_git[ahead]} == <-> ]] && (( _bacumi_developer_git[ahead] )) && detail+=" ahead:${_bacumi_developer_git[ahead]}"
-    [[ ${_bacumi_developer_git[behind]} == <-> ]] && (( _bacumi_developer_git[behind] )) && detail+=" behind:${_bacumi_developer_git[behind]}"
+  local -i fixed_width=2
+  [[ -n $branch ]] && (( fixed_width+=7+${(m)#git_suffix} ))
+  local -i text_budget=$(( content_width-fixed_width ))
+  (( text_budget < 1 )) && text_budget=1
+  local -i path_width=${(m)#directory} branch_width=${(m)#branch}
+  if [[ -n $branch ]] && (( path_width+branch_width > text_budget )); then
+    path_width=$(( text_budget/2 )); (( path_width < 1 )) && path_width=1
+    branch_width=$(( text_budget-path_width )); (( branch_width < 1 )) && branch_width=1
+    if (( ${(m)#branch} < branch_width )); then (( path_width+=branch_width-${(m)#branch} )); fi
+    if (( ${(m)#directory} < path_width )); then (( branch_width+=path_width-${(m)#directory} )); fi
+  elif [[ -z $branch ]]; then
+    path_width=$text_budget
   fi
-  [[ -n $operation ]] && critical+="${critical:+ }$operation"
-  local -i budget=$(( width - 1 )) result_width=0
-  if [[ ${BACUMI_PROMPT_LAYOUT:-developer} == compact ]]; then
-    result_width=$(( ${#result} + ${#marker} + 2 )); (( budget-=result_width ))
+  (( path_width > ${(m)#directory} )) && path_width=${(m)#directory}
+  (( branch_width > ${(m)#branch} )) && branch_width=${(m)#branch}
+  local -i used=$(( path_width+2 ))
+  [[ -n $branch ]] && (( used+=branch_width+${(m)#git_suffix}+7 ))
+  local -a git_optional context_parts badges
+  if [[ ${BACUMI_GIT_DETAILS:-1} != 0 ]] && (( ! _bacumi_developer_git[unavailable] )); then
+    (( _bacumi_developer_git[staged] )) && git_optional+=("+${_bacumi_developer_git[staged]}")
+    (( _bacumi_developer_git[unstaged] )) && git_optional+=("~${_bacumi_developer_git[unstaged]}")
+    (( _bacumi_developer_git[untracked] )) && git_optional+=("?${_bacumi_developer_git[untracked]}")
+    [[ ${_bacumi_developer_git[ahead]} == <-> ]] && (( _bacumi_developer_git[ahead] )) && git_optional+=("ahead:${_bacumi_developer_git[ahead]}")
+    [[ ${_bacumi_developer_git[behind]} == <-> ]] && (( _bacumi_developer_git[behind] )) && git_optional+=("behind:${_bacumi_developer_git[behind]}")
   fi
-  local -i critical_width=${#critical} branch_width=0 path_width=$budget
-  [[ -n $critical ]] && (( path_width-=critical_width+1 ))
-  if [[ -n $branch ]]; then
-    branch_width=$(( path_width / 2 - 4 )); (( branch_width < 3 )) && branch_width=3
-    (( path_width-=branch_width+5 ))
-  fi
-  (( path_width < 1 )) && path_width=1
-  _bacumi_developer_escape "$directory"
-  firstline="${color[directory]}%${path_width}<..<${REPLY}%<<${color[reset]}"
-  local -i used=$(( ${(m)#directory} < path_width ? ${(m)#directory} : path_width ))
-  if [[ -n $branch ]]; then
-    _bacumi_developer_escape "$branch"
-    firstline+=" ${gitcolor}git:%${branch_width}<..<${REPLY}%<<${color[reset]}"
-    (( used+=5+(${(m)#branch} < branch_width ? ${(m)#branch} : branch_width) ))
-  fi
-  if [[ -n $critical ]]; then
-    _bacumi_developer_escape "$critical"; firstline+=" ${color[error]}$REPLY${color[reset]}"; (( used+=critical_width+1 ))
-  fi
-  # Lower-priority context is added only as a complete segment that fits.
-  local segment
-  if (( width > 40 )); then
-    for segment in "$detail" "$runtimes" "$context" "$duration"; do
-      segment=${segment## }
-      if [[ -n $segment ]] && (( used + ${(m)#segment} + 2 <= budget )); then
-        _bacumi_developer_escape "$segment"; firstline+="  ${color[muted]}$REPLY${color[reset]}"
-        (( used+=${(m)#segment}+2 ))
-      fi
+  local segment git_details=''
+  for segment in "${git_optional[@]}"; do
+    if (( used+${(m)#segment}+1 <= content_width )); then
+      git_details+=" $segment"; (( used+=${(m)#segment}+1 ))
+    fi
+  done
+  # Runtime labels are admitted separately; a long environment name must not
+  # hide an otherwise short active runtime or command duration.
+  context_parts=("${(@s:  :)runtimes}" "${(@s:  :)context}" "$duration")
+  if (( width >= 80 )); then
+    for segment in "${context_parts[@]}"; do
+      [[ -n $segment ]] || continue
+      local -i needed=$(( used+${(m)#segment}+3-content_width ))
+      if (( needed > 0 && path_width-needed >= 7 )); then (( path_width-=needed )); (( used-=needed )); fi
+      break
     done
   fi
-  [[ -n $result ]] && { _bacumi_developer_escape "$result"; secondline="${color[error]}$REPLY${color[reset]} "; }
-  secondline+="${color[accent]}$marker${color[reset]} "
-  if [[ ${BACUMI_PROMPT_LAYOUT:-developer} == compact ]]; then _bacumi_developer_prompt="$firstline $secondline"
-  else _bacumi_developer_prompt="$firstline"$'\n'"$secondline"
+  if (( ${(m)#directory} > path_width && path_width >= 7 )); then
+    directory=".../${directory:t}"
+    if (( ${(m)#directory} < path_width )); then
+      (( used-=path_width-${(m)#directory} ))
+      path_width=${(m)#directory}
+    fi
+  fi
+  _bacumi_developer_escape "$directory"
+  local path_ellipsis='..' branch_ellipsis='..'
+  (( path_width < 2 )) && path_ellipsis='.'
+  (( branch_width < 2 )) && branch_ellipsis='.'
+  badges+=("${style[directory]} %${path_width}<${path_ellipsis}<${REPLY}%<< $reset")
+  if [[ -n $branch ]]; then
+    _bacumi_developer_escape "$branch"
+    local git_role=git
+    (( _bacumi_developer_git[conflicts] || _bacumi_developer_git[unavailable] )) && git_role=error
+    gittext="git:%${branch_width}<${branch_ellipsis}<${REPLY}%<<"
+    _bacumi_developer_escape "$git_suffix$git_details"
+    badges+=("${style[$git_role]} $gittext$REPLY $reset")
+  fi
+  for segment in "${context_parts[@]}"; do
+    if [[ -n $segment ]] && (( used+${(m)#segment}+3 <= content_width )); then
+      _bacumi_developer_escape "$segment"
+      badges+=("${style[context]} $REPLY $reset")
+      (( used+=${(m)#segment}+3 ))
+    fi
+  done
+  firstline="${(j: :)badges}"
+  if [[ -n $failure ]]; then
+    _bacumi_developer_escape "$failure"
+    inputline="${style[error]} $REPLY $reset "
+  fi
+  inputline+="$marker_style$marker$reset "
+  if [[ ${BACUMI_PROMPT_LAYOUT:-developer} == compact ]]; then _bacumi_developer_prompt="$firstline $inputline"
+  else _bacumi_developer_prompt="$firstline"$'\n'"$inputline"
   fi
   return 0
 }
@@ -241,6 +407,10 @@ _bacumi_developer_precmd() {
 zmodload zsh/datetime
 zmodload zsh/stat
 zmodload zsh/parameter
+zmodload zsh/system
+zmodload zsh/zpty
+zmodload zsh/zselect
+typeset -g _bacumi_developer_probe_output
 typeset -gA _bacumi_developer_git _bacumi_developer_cache_key _bacumi_developer_cache_version _bacumi_developer_cache_time
 typeset -g _bacumi_developer_started _bacumi_developer_prompt
 setopt prompt_subst prompt_percent

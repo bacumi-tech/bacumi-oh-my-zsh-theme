@@ -7,7 +7,8 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --custom-dir) [ "$#" -ge 2 ] || { echo '--custom-dir needs a path' >&2; exit 2; }; custom_dir=$2; shift 2 ;;
     --uninstall) action=uninstall; shift ;;
-    --help) echo 'Usage: sh install.sh [--custom-dir PATH] [--uninstall]'; exit 0 ;;
+    --check-config) action=check; shift ;;
+    --help) echo 'Usage: sh install.sh [--custom-dir PATH] [--uninstall | --check-config]'; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -16,6 +17,21 @@ source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 destination=$custom_dir/themes/bacumi
 marker=$destination/.bacumi-installed
 fail() { echo "$1" >&2; exit 1; }
+check_config() {
+  config=${ZDOTDIR:-$HOME}/.zshrc
+  if [ ! -r "$config" ]; then
+    printf 'No readable Zsh configuration at %s.\n' "$config"
+    return 0
+  fi
+  if awk '/^[[:space:]]*#/ { next } /source[[:space:]].*(p10k-instant-prompt|\.p10k\.zsh|powerlevel10k.*zsh-theme)/ { found=1 } END { exit !found }' "$config"; then
+    printf 'Powerlevel10k initialization detected in %s.\n' "$config"
+    echo 'Disable its instant-prompt block and .p10k.zsh source before using Bacumi.'
+    echo 'The git and extract plugins can stay enabled.'
+    return 1
+  fi
+  echo 'No active Powerlevel10k initialization detected.'
+}
+if [ "$action" = check ]; then check_config; exit $?; fi
 old_files='bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh'
 files="$old_files bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/developer-prompt.zsh"
 owned_files=$files
@@ -75,4 +91,5 @@ else
   echo ''
   echo 'Keep only one ZSH_THEME assignment, before Oh My Zsh is sourced.'
   echo 'Open a new terminal window to apply it.'
+  check_config || :
 fi

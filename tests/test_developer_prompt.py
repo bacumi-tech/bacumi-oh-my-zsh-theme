@@ -105,6 +105,8 @@ class DeveloperPrompt(unittest.TestCase):
         fake = tools / "git"
         fake.write_text('#!/bin/sh\nprintf "call\\n" >> "$CALLS"\nprintf "# branch.oid abcdef123\\0# branch.head main\\0"\n')
         fake.chmod(0o755)
+        subprocess.run([str(fake)], env={**os.environ, "CALLS": str(counter)}, capture_output=True, check=True, timeout=5)
+        counter.unlink()
         output = shell('''for iteration in 1 2; do
           source "$LIGHTWEIGHT_FILE"; for hook in "${precmd_functions[@]}"; do true; "$hook"; done
           print -r -- "light:${(M)#precmd_functions:#_bacumi_precmd}:${(M)#precmd_functions:#_bacumi_developer_precmd}:${(M)#preexec_functions:#_bacumi_developer_preexec}"
@@ -131,6 +133,8 @@ class DeveloperPrompt(unittest.TestCase):
         fake = tools / "git"
         fake.write_text('#!/bin/sh\nprintf "call\\n" >> "$CALLS"\nprintf "# branch.oid abcdef123\\0# branch.head main\\0? new\\0"\n')
         fake.chmod(0o755)
+        subprocess.run([str(fake)], env={**os.environ, "CALLS": str(counter)}, capture_output=True, check=True, timeout=5)
+        counter.unlink()
         env = {"PATH": str(tools) + ":" + os.environ["PATH"], "CALLS": str(counter)}
         shell('true; _bacumi_developer_precmd; print -rP -- "$PROMPT"; print -rP -- "$PROMPT"', self.cwd, env=env)
         self.assertEqual(counter.read_text().splitlines(), ["call"])
@@ -147,6 +151,8 @@ class DeveloperPrompt(unittest.TestCase):
         node = tools / "node"
         node.write_text('#!/bin/sh\nprintf "probe\\n" >> "$VERSIONS"\nprintf "v22.1.0\\n"\n')
         node.chmod(0o755)
+        subprocess.run([str(node)], env={**os.environ, "VERSIONS": str(counter)}, capture_output=True, check=True, timeout=5)
+        counter.unlink()
         env = {"PATH": str(tools) + ":" + os.environ["PATH"], "VERSIONS": str(counter)}
         self.assertNotIn("node:", self.render(env=env))
         (self.cwd / "package.json").write_text("{}")
@@ -266,6 +272,7 @@ class DeveloperPrompt(unittest.TestCase):
             tool = tools / name
             tool.write_text("#!/bin/sh\nprintf '%s\\n' '" + output + "'\n")
             tool.chmod(0o755)
+            subprocess.run([str(tool)], capture_output=True, check=True, timeout=5)
         for name in ("package.json", "pyproject.toml", "go.mod", "Cargo.toml", "app.csproj"):
             (self.cwd / name).touch()
         output = self.render(extra="COLUMNS=240", env={"PATH": str(tools)})

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — unreleased interactive-safety and Bacumi segment design
+
+- Add original Bacumi padded segments in Dark/Light with readable ANSI fallback.
+- Bound native Git/runtime probes, close their input, cap output and clean up
+  their child processes. Keep known Git HEAD visible with `status:?` when full
+  status is unavailable; omit incomplete counts. Retry failed runtime probes soon.
+- Add controlling-terminal and adversarial-process regressions, 40/80/120-column
+  fixture matrices and previews captured from the actual native renderer.
+- Fix version-file reads that waited for input from the controlling terminal.
+- Add read-only Powerlevel10k initialization diagnostics and plugin migration checks.
+- Hold release publication pending native visual review.
+
 ## 0.2.1 — consistent installation guidance
 
 - Recommend Developer Dark/Light consistently in the installer and README.

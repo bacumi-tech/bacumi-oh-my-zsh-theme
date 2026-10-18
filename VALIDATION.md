@@ -92,3 +92,43 @@ new macOS/Linux measurements; WSL/network filesystem performance is unverified.
 Use `BACUMI_GIT_DETAILS=0` to omit detailed scanning or `BACUMI_SHOW_GIT=0` to
 skip Git. Runtime probes are cached with a bounded expiry. Native macOS Terminal,
 iTerm2 and WSL visual/font review remains a separate manual acceptance step.
+
+## 0.3.0 branch review — not released
+
+The original automated suite missed a controlling-terminal bug: Zsh `read -k`
+read from `/dev/tty` despite file redirection. The regression now uses
+`pty.fork()` (not only openpty/Popen), actual installed themes and real Oh My Zsh.
+Small version files, empty/non-newline files, typed commands after `cd`, plugin
+loading, status, resizing, Unicode/multiline input and Ctrl-C are exercised.
+
+Native external probes now share an approximately 180 ms subprocess budget per
+prompt, with EOF input, bounded output, timeout cleanup and short failure caching.
+A Git status failure keeps bounded local HEAD information with explicit `status:?`;
+partial/stale counts are suppressed. The budget does not bound filesystem or OS
+scheduling calls. Deliberately daemonizing executable wrappers are outside the
+ordinary-runtime fixtures; no arbitrary-process containment guarantee is made.
+
+Real renderer fixtures cover Dark/Light, developer/compact, 40/80/120 columns,
+plain/ANSI/truecolor and icons, including conflict/failure/unknown-state priority.
+Developer SVGs now rerender from the actual native formatting code on controlled
+data; they remain distinct from native emulator screenshots. ANSI fallback uses
+readable inverse colors against the terminal's current background. Exact Bacumi
+RGB colors require truecolor support.
+
+Local macOS checks passed for native Zsh and PowerShell 7.6.7, including the
+existing installer/font suites and archive installation. New Windows PowerShell
+5.1/7 and hosted Linux checks are required on the review branch before release.
+Native Apple Terminal/iTerm2/Windows Terminal visual acceptance remains manual.
+No 0.3.0 release is published.
+
+Zsh additionally isolates each probe in a native private process group/terminal,
+uses nonce-framed output, and tests successful/hung probe child cleanup, terminal
+input isolation, output overflow, cleanup function interception, malformed HEAD,
+raw C1 byte filtering without damaging Unicode and read-only detection of legacy
+Powerlevel10k initialization. Local total: 53 unittest tests, including a
+288-render fixture matrix and six controlling-terminal integration tests.
+
+A separate read-only cycle through the user's reported .NET project used the
+actual installed tools, isolated startup configuration and `git`/`extract`
+plugins. Dark/Light returned after `cd` in 154/194 ms, with PWD/status and return
+directory verified. No project or normal shell configuration was changed.
