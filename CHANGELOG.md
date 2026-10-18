@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — unreleased interactive-safety and Bacumi segment design
+## 0.3.0 — 2026-10-18 (preview)
 
 - Add original Bacumi padded segments in Dark/Light with readable ANSI fallback.
 - Bound native Git/runtime probes, close their input, cap output and clean up
@@ -10,7 +10,7 @@
   fixture matrices and previews captured from the actual native renderer.
 - Fix version-file reads that waited for input from the controlling terminal.
 - Add read-only Powerlevel10k initialization diagnostics and plugin migration checks.
-- Hold release publication pending native visual review.
+- Publish as a preview while native terminal visual/font acceptance remains pending.
 
 ## 0.2.1 — consistent installation guidance
 

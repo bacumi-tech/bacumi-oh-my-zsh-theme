@@ -6,17 +6,15 @@
   <h1>Bacumi for Oh My Zsh</h1>
   <p>A focused shell prompt, in Dark and Light.</p>
   <p>
-    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.1">Download 0.2.1 preview</a> ·
+    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.0">Download 0.3.0 preview</a> ·
     <a href="#installation">Installation</a> ·
     <a href="BRAND.md">Brand and icons</a> ·
     <a href="LICENSE">MIT license</a>
   </p>
 </div>
 
-**Unreleased branch preview.** The segmented design and interactive-safety fixes
-below are under review on `fix/mbc/interactive-prompt-safety`. They are not in the
-previously published ZIP linked above. No 0.3.0 release has been published.
-
+**0.3.0 preview.** Includes the original Bacumi segmented design and interactive
+prompt safety fixes. Download the ZIP below or install from the Git checkout.
 
 Bacumi brings focused developer information to Zsh: your directory, detailed Git
 state, relevant runtimes and command results. Dark and Light follow the Bacumi
@@ -80,8 +78,8 @@ Installation from ZIP requires no Git, special font or package manager.
 
 ### 1. Download and extract
 
-Download [bacumi-oh-my-zsh-theme-0.2.1.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.2.1/bacumi-oh-my-zsh-theme-0.2.1.zip)
-from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.1).
+Download [bacumi-oh-my-zsh-theme-0.3.0.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.3.0/bacumi-oh-my-zsh-theme-0.3.0.zip)
+from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.0).
 Extract the ZIP and open a terminal in the folder containing `install.sh`.
 
 To verify the ZIP first, download `SHA256SUMS` from the same release into the ZIP's
@@ -171,9 +169,8 @@ plugins=(git extract)
 source "$ZSH/oh-my-zsh.sh"
 ```
 
-To test this unreleased branch, clone with
-`git clone --branch fix/mbc/interactive-prompt-safety https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme.git`.
-Use `--custom-dir` with a temporary path for isolated installation checks.
+For isolated installation checks, use `--custom-dir` with a temporary path.
+The installer leaves your normal shell configuration unchanged.
 
 ### Install from a Git checkout
 
