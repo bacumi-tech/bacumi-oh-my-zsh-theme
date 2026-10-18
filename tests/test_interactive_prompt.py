@@ -243,7 +243,7 @@ preexec_functions+=(bacumi_test_preexec)
         self.assertIn("!1", output)
         output = session.command("printf '\\x53\\x54\\x41\\x54\\x55\\x53=%s\\n' \"$?\"")
         self.assertIn("STATUS=1\r\n", output)
-        self.assertIn("!127", session.command("bacumi_nonexistent_command_fixture"))
+        self.assertIn("!127 command not found", session.command("bacumi_nonexistent_command_fixture"))
         self.assertIn("STATUS=127\r\n", session.command("printf '\\x53\\x54\\x41\\x54\\x55\\x53=%s\\n' \"$?\""))
         project = self.cwd / "spațiu 日本語 with spaces"
         project.mkdir()
@@ -272,7 +272,7 @@ preexec_functions+=(bacumi_test_preexec)
         session.read_until(b"\x1b]777;bacumi-test-sleep\x07")
         session.send(b"\x03")
         output = session.read_until()
-        self.assertIn("!130", output)
+        self.assertIn("!130 interrupted", output)
         self.assert_pwd(session, project)
 
     def test_runtime_stdin_is_closed_and_hanging_probes_are_bounded(self):

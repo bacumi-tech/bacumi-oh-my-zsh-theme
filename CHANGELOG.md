@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add readable failure summaries beside developer prompt exit codes in Dark/Light.
+- Let compact failure prompts use two lines when needed to retain Git state and
+  the explanation; clear the summary after success without changing shell status.
+
 ## 0.3.1 — 2026-10-18 (preview)
 
 - Prevent native probes from inheriting terminal session-save and shell exit hooks.

@@ -53,6 +53,28 @@ print -rnP -- "$PROMPT"
 
 
 class Segments(unittest.TestCase):
+    def test_readable_failures_and_recovery(self):
+        labels = {1: 'command failed', 7: 'command failed', 126: 'cannot execute',
+                  127: 'command not found', 130: 'interrupted', 143: 'terminated',
+                  255: 'command failed'}
+        for appearance in ('dark', 'light'):
+            for layout in ('developer', 'compact'):
+                for columns in (40, 80):
+                    for code, label in labels.items():
+                        with self.subTest(appearance=appearance, layout=layout, columns=columns, code=code):
+                            case = {**CASES[1], 'exit': code}
+                            plain = ANSI.sub('', render(case, columns, appearance, layout))
+                            self.assertIn(f'!{code} {label}', plain)
+                            self.assertIn('conflict:1', plain)
+                            self.assertTrue(all(width(line) <= columns for line in plain.splitlines()), repr(plain))
+                    plain = ANSI.sub('', render({**CASES[0], 'exit': 0}, columns, appearance, layout))
+                    for label in labels.values(): self.assertNotIn(label, plain)
+        narrow = ANSI.sub('', render({**CASES[0], 'exit': 127}, 16, mode='none',
+                                    extra={'BACUMI_SHOW_GIT': '0'}))
+        self.assertIn('!127', narrow)
+        self.assertIn('...', narrow.splitlines()[-1])
+        self.assertTrue(all(width(line) <= 16 for line in narrow.splitlines()), repr(narrow))
+
     def test_shared_matrix(self):
         for appearance in ('dark','light'):
             for layout in ('developer','compact'):

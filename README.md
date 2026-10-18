@@ -65,7 +65,18 @@ Illustrated prompt previews, not native terminal screenshots.
 | `3.2s` | Previous command took at least two seconds |
 | `*` | Any changes, in the original lightweight prompt |
 | `git:@abc1234` | Detached HEAD, identified by commit prefix |
-| `!1` | The previous command exited with status 1 |
+| `!1 command failed` | The previous command failed; its exit code is preserved |
+| `!127 command not found` | Zsh's conventional summary for exit code 127 |
+| `!130 interrupted` | Zsh's conventional summary for an interrupted command |
+
+The developer prompt adds a short summary to the exit code: `cannot execute`
+for 126, `command not found` for 127, `interrupted` for 130, `terminated` for
+143, and `command failed` for other failures. These are exit-code conventions,
+not a diagnosis of an application's error. The full message stays in the
+command's original output; the theme does not capture or repeat it. A successful
+command clears the badge. Compact layouts use a second line when the summary
+and essential Git state cannot fit together. Extremely narrow windows shorten
+the summary. The original lightweight prompt retains its numeric `!1` display.
 
 ## Installation
 

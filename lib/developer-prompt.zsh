@@ -288,7 +288,16 @@ _bacumi_developer_precmd() {
     fi
   fi
   _bacumi_developer_runtimes; runtimes=$REPLY
-  (( last_exit )) && result="!$last_exit"
+  if (( last_exit )); then
+    local failure_label='command failed'
+    case $last_exit in
+      126) failure_label='cannot execute' ;;
+      127) failure_label='command not found' ;;
+      130) failure_label='interrupted' ;;
+      143) failure_label='terminated' ;;
+    esac
+    result="!$last_exit $failure_label"
+  fi
   if (( elapsed >= 2 )); then printf -v duration '%.1fs' "$elapsed"; fi
   [[ -n $SSH_CONNECTION || -n $SSH_TTY || $EUID == 0 ]] && context="${USER:-${USERNAME:-user}}@${HOST%%.*}"
   (( jobs_count )) && context+="${context:+  }jobs:$jobs_count"
@@ -316,15 +325,21 @@ _bacumi_developer_precmd() {
     marker_style='%F{yellow}'; reset='%s%k%f'
   fi
   local marker='>' failure='' firstline='' inputline='' gittext='' git_suffix=''
+  local layout=${BACUMI_PROMPT_LAYOUT:-developer}
   [[ ${BACUMI_PROMPT_ICONS:-0} == 1 ]] && marker='❯'
   [[ -n $result ]] && failure=$result
+  if (( width >= 16 && ${#failure} > width-6 )); then failure="${failure[1,$((width-9))]}..."; fi
   local -i input_width=$(( ${(m)#marker} + 1 ))
   [[ -n $failure ]] && (( input_width+=${(m)#failure}+3 ))
-  local -i content_width=$(( width - 1 ))
-  [[ ${BACUMI_PROMPT_LAYOUT:-developer} == compact ]] && (( content_width-=input_width+1 ))
-  (( content_width < 8 )) && content_width=8
   (( _bacumi_developer_git[conflicts] )) && git_suffix=" conflict:${_bacumi_developer_git[conflicts]}"
   (( _bacumi_developer_git[unavailable] )) && git_suffix+=' status:?'
+  local -i minimum_first=3
+  [[ -n $branch ]] && (( minimum_first+=8+${(m)#git_suffix} ))
+  # Let compact failures wrap before sacrificing their explanation or Git state.
+  [[ -n $failure ]] && (( minimum_first+input_width+2 > width )) && layout=developer
+  local -i content_width=$(( width - 1 ))
+  [[ $layout == compact ]] && (( content_width-=input_width+1 ))
+  (( content_width < 8 )) && content_width=8
   if [[ -n $operation ]] && (( content_width >= 11+${(m)#git_suffix}+${(m)#operation} )); then
     git_suffix+=" $operation"
   fi
@@ -403,7 +418,7 @@ _bacumi_developer_precmd() {
     inputline="${style[error]} $REPLY $reset "
   fi
   inputline+="$marker_style$marker$reset "
-  if [[ ${BACUMI_PROMPT_LAYOUT:-developer} == compact ]]; then _bacumi_developer_prompt="$firstline $inputline"
+  if [[ $layout == compact ]]; then _bacumi_developer_prompt="$firstline $inputline"
   else _bacumi_developer_prompt="$firstline"$'\n'"$inputline"
   fi
   return 0
