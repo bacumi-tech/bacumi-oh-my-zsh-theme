@@ -63,7 +63,16 @@ else
   mkdir -p -- "$destination/lib"
   for file in $files; do cp -- "$source_dir/$file" "$destination/$file"; done
   manifest "$files" > "$marker"
-  printf 'Installed Dark and Light into %s\n' "$destination"
-  echo 'Developer: ZSH_THEME="bacumi/bacumi-developer-dark" or "bacumi/bacumi-developer-light".'
-  echo 'Set ZSH_THEME="bacumi/bacumi-dark" or "bacumi/bacumi-light" in .zshrc, then open a new shell.'
+  printf 'Installed Developer and Lightweight themes into %s\n' "$destination"
+  echo ''
+  echo 'Choose one Developer theme in ~/.zshrc (recommended):'
+  echo '  ZSH_THEME="bacumi/bacumi-developer-dark"'
+  echo '  ZSH_THEME="bacumi/bacumi-developer-light"'
+  echo ''
+  echo 'Optional Lightweight themes (minimal prompt):'
+  echo '  ZSH_THEME="bacumi/bacumi-dark"'
+  echo '  ZSH_THEME="bacumi/bacumi-light"'
+  echo ''
+  echo 'Keep only one ZSH_THEME assignment, before Oh My Zsh is sourced.'
+  echo 'Open a new terminal window to apply it.'
 fi

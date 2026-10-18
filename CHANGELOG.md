@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 — consistent installation guidance
+
+- Recommend Developer Dark/Light consistently in the installer and README.
+- Label the original themes as optional Lightweight alternatives, with complete
+  copyable assignments and an explicit instruction to keep one selection before
+  Oh My Zsh loads. Theme names and runtime behavior are unchanged.
+
 ## 0.2.0 — native developer prompt preview
 
 - Add native developer prompts with Bacumi Dark and Light, detailed Git state,

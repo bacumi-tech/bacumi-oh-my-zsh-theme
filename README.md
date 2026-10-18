@@ -6,7 +6,7 @@
   <h1>Bacumi for Oh My Zsh</h1>
   <p>A focused shell prompt, in Dark and Light.</p>
   <p>
-    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.0">Download 0.2.0 preview</a> ·
+    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.1">Download 0.2.1 preview</a> ·
     <a href="#installation">Installation</a> ·
     <a href="BRAND.md">Brand and icons</a> ·
     <a href="LICENSE">MIT license</a>
@@ -70,8 +70,8 @@ Installation from ZIP requires no Git, special font or package manager.
 
 ### 1. Download and extract
 
-Download [bacumi-oh-my-zsh-theme-0.2.0.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.2.0/bacumi-oh-my-zsh-theme-0.2.0.zip)
-from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.0).
+Download [bacumi-oh-my-zsh-theme-0.2.1.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.2.1/bacumi-oh-my-zsh-theme-0.2.1.zip)
+from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.2.1).
 Extract the ZIP and open a terminal in the folder containing `install.sh`.
 
 To verify the ZIP first, download `SHA256SUMS` from the same release into the ZIP's
@@ -83,7 +83,7 @@ shasum -a 256 -c SHA256SUMS
 
 On Linux, you can use `sha256sum -c SHA256SUMS` instead.
 
-### 2. Install both appearances
+### 2. Install the themes
 
 ```sh
 sh install.sh
@@ -97,10 +97,12 @@ configured only inside `.zshrc`, pass its actual path:
 sh install.sh --custom-dir '/path/to/oh-my-zsh/custom'
 ```
 
-The installer copies only Bacumi theme files. You choose the active theme in
-your configuration; `.zshrc` is preserved.
+The installer includes both Developer and Lightweight prompts, each in Dark and
+Light. **Developer is recommended** for detailed Git and runtime information;
+Lightweight keeps only directory, basic Git state and the last failure. You
+choose the active theme in your configuration; `.zshrc` is preserved.
 
-### 3. Select Dark or Light
+### 3. Select a Developer appearance (recommended)
 
 Back up your configuration before editing it:
 
@@ -121,9 +123,19 @@ For a light terminal background, use:
 ZSH_THEME="bacumi/bacumi-developer-light"
 ```
 
-For the original lightweight prompt, choose `bacumi/bacumi-dark` or
-`bacumi/bacumi-light` instead. Existing selections keep their layout after an
-update. The installer safely upgrades the original three-file installation.
+Keep **one** `ZSH_THEME` assignment. Choose Dark or Light to match your terminal
+background. These Developer themes provide the detailed prompt shown above.
+
+For the optional **Lightweight** prompt, use one of these instead:
+
+```zsh
+ZSH_THEME="bacumi/bacumi-dark"   # Lightweight Dark
+# Or: ZSH_THEME="bacumi/bacumi-light"  # Lightweight Light
+```
+
+Existing selections keep their layout after an update; installing files does
+not select a different prompt. The installer safely upgrades the original
+three-file installation.
 
 Open a new terminal window. In a Git repository, the prompt should display your
 branch. Run `false` to check that `!1` appears in the next prompt.
