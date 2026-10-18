@@ -24,6 +24,8 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --yes zsh
       - run: python3 scripts/build.py --check
+      - run: python3 scripts/build-icons.py --check
+      - run: python3 scripts/check-brand.py
       - run: sh -n install.sh && zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh
       - name: Prompt, installer and real Oh My Zsh integration
         env:

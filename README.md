@@ -1,5 +1,7 @@
 # Bacumi for Oh My Zsh
 
+![Bacumi Oh My Zsh Dark icon](assets/icons/icon-dark-128.png) ![Bacumi Light icon](assets/icons/icon-light-128.png)
+
 A compact prompt in **Dark** and **Light**, with warm focus accents, readable
 Git state and no required special font. Free and open source under the
 [MIT License](LICENSE).
@@ -17,7 +19,7 @@ Requires **Zsh 5.8+** and an existing **Oh My Zsh** installation on macOS,
 Linux or WSL. Git is optional for installation from ZIP; Git status is shown
 only if Git is available. No Node.js, Python or package manager is needed.
 
-1. Download `bacumi-oh-my-zsh-theme-0.1.0.zip` from
+1. Download `bacumi-oh-my-zsh-theme-0.1.1.zip` from
    [Releases](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases),
    extract it, and open a terminal in the extracted directory.
 2. Install both variants:
@@ -113,8 +115,30 @@ never needs a private sibling repository. See [validation](VALIDATION.md) and
 
 The MIT license covers this repository's themes, palette, code, documentation
 and illustrations. Bacumi names identify this project; the license does not
-grant trademark rights or imply endorsement of forks. No proprietary logos or
-fonts are bundled. No telemetry or runtime network calls.
+grant trademark rights or imply endorsement of forks. Original product icons are MIT licensed; company logo masters and
+fonts are not bundled. No telemetry or runtime network calls.
 
 Installation follows [Oh My Zsh's custom theme mechanism](https://github.com/ohmyzsh/ohmyzsh/wiki/Customization).
 Prompt formatting follows [Zsh prompt expansion](https://zsh.sourceforge.io/Doc/Release/Prompt-Expansion.html).
+
+## Bacumi brand and product icons
+
+The palette was checked against Bacumi Brand v1.0 and its approved editor
+adaptation: Graphite-derived Dark, Off-White Light, warm focus accents and
+contrast-adjusted semantic colors. Both terminal-theme projects use the same
+palette revision. [BRAND.md](BRAND.md) records the role mapping and icon rationale.
+
+`assets/icons/` contains original Dark/Light SVG masters and transparent PNG
+exports at 16, 32, 128, 256, 512 and 1024 px. These are product identifiers;
+selecting the theme does not replace your terminal application's icon.
+
+Contributor checks (Python standard library only):
+
+```sh
+python3 scripts/build-icons.py --check
+python3 scripts/check-brand.py
+```
+
+After artwork edits, regenerate SVGs with `python3 scripts/build-icons.py`.
+Refreshing PNGs uses `python3 scripts/export-icons.py`, with optional PyMuPDF
+available in the contributor's environment. It is never needed by users or CI.

@@ -37,3 +37,17 @@ backgrounds and non-prompt output are controlled by the emulator and application
 Use truecolor mode for exact Bacumi colors; ANSI fallback follows the terminal's
 palette. The illustrated SVGs are not native screenshots. The initial release
 is a preview while collecting native visual feedback, including WSL.
+
+## Brand review — 0.1.1
+
+Both Dark/Light palettes match the approved Bacumi editor adaptation exactly,
+including all 16 ANSI colors. Master icon colors are the six exact Bacumi Brand
+v1.0 values. The icons use original product-specific geometry, with no company
+mark, third-party product logo, font or embedded image. Flat Graphite is the
+approved small-format treatment; Light uses Off-White and Beige with contrast
+edges. SVGs and PNGs were visually inspected at 256 px and in a small-size sheet.
+
+CI validates the approved palette snapshot, exact master colors, generated SVG
+consistency, PNG dimensions and source/export hashes. The brand checks require
+only Python's standard library. Artwork export is an optional contributor step.
+The existing native Windows Terminal/WSL visual-review limits still apply.
