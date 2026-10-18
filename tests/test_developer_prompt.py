@@ -171,7 +171,11 @@ class DeveloperPrompt(unittest.TestCase):
         self.git("checkout", "main")
         (self.cwd / "tracked").write_text("main\n")
         self.git("commit", "-am", "main")
-        subprocess.run(["git", "merge", "other"], cwd=self.cwd, capture_output=True)
+        merge = subprocess.run(["git", "-c", "user.name=Prompt Test", "-c", "user.email=test@example.invalid", "merge", "other"],
+                               cwd=self.cwd, capture_output=True, text=True,
+                               env={**os.environ, "GIT_CONFIG_GLOBAL": os.devnull})
+        self.assertEqual(merge.returncode, 1, merge.stderr)
+        self.assertIn("CONFLICT", merge.stdout)
         output = self.render("false", "COLUMNS=40")
         self.assertIn("conflict:1", output)
         self.assertIn("!1", output)
