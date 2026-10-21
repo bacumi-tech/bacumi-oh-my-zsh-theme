@@ -84,14 +84,16 @@ the summary. The original lightweight prompt retains its numeric `!1` display.
 Run the same command for a first installation or an update:
 
 ```sh
-(set -e; script=$(mktemp "${TMPDIR:-/tmp}/bacumi-install.XXXXXXXX"); trap 'rm -f -- "$script"' EXIT; curl -fsSL https://raw.githubusercontent.com/bacumi-tech/bacumi-oh-my-zsh-theme/main/install-remote.sh -o "$script"; sh "$script")
+curl -fsSL https://bacumi.com/install.sh | sh
 ```
 
-The script downloads the current versioned preview ZIP, verifies its SHA-256,
+Choose your platform at [bacumi.com/download](https://bacumi.com/download).
+The short URL loads the maintained public installer, which downloads the current
+versioned preview ZIP, verifies its SHA-256,
 then runs the existing installer. It preserves local edits and `.zshrc`.
 On first install, select your theme in step 3 below; updates keep that selection.
 Open a new terminal tab after updating. Oh My Zsh must already be installed.
-For an isolated or custom installation, append `--custom-dir '/your/custom/path'`.
+For a custom installation, use `curl -fsSL https://bacumi.com/install.sh | sh -s -- --custom-dir '/your/custom/path'`.
 
 ### Requirements
 
