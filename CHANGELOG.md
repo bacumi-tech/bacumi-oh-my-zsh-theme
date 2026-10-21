@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3 — 2026-10-21 (preview)
+
+- Clear the previous failure summary on empty or whitespace-only Enter.
+- Keep failure summaries for newly executed commands and add interactive coverage.
+
 ## 0.3.2 — 2026-10-18 (preview)
 
 - Add readable failure summaries beside developer prompt exit codes in Dark/Light.

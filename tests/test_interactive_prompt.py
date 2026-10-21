@@ -216,6 +216,14 @@ preexec_functions+=(bacumi_test_preexec)
         output = session.command("printf '\\x50\\x57\\x44=%s\\n' \"$PWD\"")
         self.assertIn("PWD=" + str(directory) + "\r\n", output)
 
+    def test_empty_enter_clears_previous_failure(self):
+        session = self.start()
+        self.assertIn("!1 command failed", session.command("false"))
+        for blank in ("", "   ", ""):
+            session.send(blank + "\n")
+            self.assertNotIn("command failed", session.read_until())
+        self.assertIn("!1 command failed", session.command("false"))
+
     def test_small_version_files_return_prompt_without_consuming_input(self):
         files = {"global.json": '{"sdk":{"version":"8.0.100"}}\n',
                  ".nvmrc": "22\n", ".node-version": "22.1.0",

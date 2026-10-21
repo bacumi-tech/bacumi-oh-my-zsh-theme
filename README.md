@@ -6,14 +6,14 @@
   <h1>Bacumi for Oh My Zsh</h1>
   <p>A focused shell prompt, in Dark and Light.</p>
   <p>
-    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.2">Download 0.3.2 preview</a> ·
+    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.3">Download 0.3.3 preview</a> ·
     <a href="#installation">Installation</a> ·
     <a href="BRAND.md">Brand and icons</a> ·
     <a href="LICENSE">MIT license</a>
   </p>
 </div>
 
-**0.3.2 preview.** Adds readable error summaries to the Bacumi Dark/Light
+**0.3.3 preview.** Clears stale failures on empty Enter in the Bacumi Dark/Light
 developer prompts. Download the ZIP below or install from the Git checkout.
 
 Bacumi brings focused developer information to Zsh: your directory, detailed Git
@@ -89,8 +89,8 @@ Installation from ZIP requires no Git, special font or package manager.
 
 ### 1. Download and extract
 
-Download [bacumi-oh-my-zsh-theme-0.3.2.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.3.2/bacumi-oh-my-zsh-theme-0.3.2.zip)
-from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.2).
+Download [bacumi-oh-my-zsh-theme-0.3.3.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.3.3/bacumi-oh-my-zsh-theme-0.3.3.zip)
+from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.3).
 Extract the ZIP and open a terminal in the folder containing `install.sh`.
 
 To verify the ZIP first, download `SHA256SUMS` from the same release into the ZIP's

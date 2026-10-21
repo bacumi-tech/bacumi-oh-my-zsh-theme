@@ -242,6 +242,9 @@ _bacumi_developer_precmd() {
   local -i last_exit=$?
   local _bacumi_developer_bang=$options[promptbang]
   emulate -L zsh
+  # Empty Enter runs precmd without preexec; do not repeat a stale failure.
+  [[ -z $_bacumi_developer_started && $_bacumi_developer_rendered == 1 ]] && last_exit=0
+  typeset -g _bacumi_developer_rendered=1
   local -F _bacumi_developer_probe_deadline=$(( EPOCHREALTIME + 0.18 ))
   local -F elapsed=0
   [[ -n $_bacumi_developer_started ]] && elapsed=$(( EPOCHREALTIME - _bacumi_developer_started ))
