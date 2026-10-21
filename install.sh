@@ -34,6 +34,8 @@ check_config() {
 if [ "$action" = check ]; then check_config; exit $?; fi
 old_files='bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh'
 files="$old_files bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/developer-prompt.zsh"
+legacy_files=$files
+files="$files lib/probe.zsh"
 owned_files=$files
 manifest() {
   echo 'bacumi-oh-my-zsh-theme v1'
@@ -52,10 +54,13 @@ if [ -e "$destination" ]; then
   # Historical v1 receipts own three files; verify that exact set before migration.
   if actual=$(manifest "$files") && [ "$actual" = "$expected" ]; then
     owned_files=$files
+  elif actual=$(manifest "$legacy_files") && [ "$actual" = "$expected" ]; then
+    owned_files=$legacy_files
+    [ ! -e "$destination/lib/probe.zsh" ] && [ ! -L "$destination/lib/probe.zsh" ] || fail "Unowned file would be replaced: lib/probe.zsh"
   elif actual=$(manifest "$old_files") && [ "$actual" = "$expected" ]; then
     owned_files=$old_files
     if [ "$action" = install ]; then
-      for file in bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/developer-prompt.zsh; do
+      for file in bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/developer-prompt.zsh lib/probe.zsh; do
         [ ! -e "$destination/$file" ] && [ ! -L "$destination/$file" ] || fail "Unowned file would be replaced: $file"
       done
     fi
@@ -76,9 +81,41 @@ if [ "$action" = uninstall ]; then
 else
   # Validate the complete source before writing any installed file.
   for file in $files; do [ -f "$source_dir/$file" ] || fail "Missing release file: $file"; done
+  stage=$(mktemp -d "${TMPDIR:-/tmp}/bacumi-theme.XXXXXXXX")
+  transaction=0
+  cleanup() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    set +e
+    rollback_failed=0
+    if [ "$status" -ne 0 ] && [ "$transaction" -eq 1 ]; then
+      for file in $files .bacumi-installed; do
+        if [ -f "$stage/backup/$file" ]; then
+          cp -p -- "$stage/backup/$file" "$destination/$file" || rollback_failed=1
+        else
+          rm -f -- "$destination/$file" || rollback_failed=1
+        fi
+      done
+    fi
+    if [ "$rollback_failed" -eq 1 ]; then
+      echo "Rollback failed; recovery copies retained in $stage/backup" >&2
+    else
+      rm -rf -- "$stage"
+    fi
+    exit "$status"
+  }
+  trap cleanup EXIT
+  trap 'exit 130' HUP INT TERM
+  mkdir -p -- "$stage/payload/lib" "$stage/backup/lib"
+  for file in $files; do cp -- "$source_dir/$file" "$stage/payload/$file"; done
+  for file in $owned_files .bacumi-installed; do
+    [ ! -f "$destination/$file" ] || cp -p -- "$destination/$file" "$stage/backup/$file"
+  done
   mkdir -p -- "$destination/lib"
-  for file in $files; do cp -- "$source_dir/$file" "$destination/$file"; done
+  transaction=1
+  for file in $files; do cp -- "$stage/payload/$file" "$destination/$file"; done
   manifest "$files" > "$marker"
+  transaction=0
   printf 'Installed Developer and Lightweight themes into %s\n' "$destination"
   echo ''
   echo 'Choose one Developer theme in ~/.zshrc (recommended):'

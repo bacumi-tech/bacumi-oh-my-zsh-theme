@@ -151,3 +151,14 @@ run exactly once. Installed-theme controlling-terminal tests use real Git with
 staged, unstaged and untracked files plus a simulated terminal session-save hook,
 in both Dark and Light. Existing shared deadlines and unknown-status fallback
 remain unchanged. Native emulator visual/font review is still separate.
+
+## 0.3.4 preview — 2026-10-21
+
+Remote install/update is tested with local release ZIP fixtures: repeat installation,
+SHA-256 mismatch refusal and failed downloads before installer execution.
+Lightweight now shares the Developer bounded probe; a sleeping Git fixture returns
+the prompt within the test deadline. Interactive checks cover empty and whitespace
+Enter in both prompt variants and appearances while retaining the real exit status.
+Injected copy failure verifies restoration of installed files and their receipt;
+three-file and six-file ownership receipts remain supported.
+Native emulator visual/font acceptance remains pending.

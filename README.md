@@ -6,15 +6,14 @@
   <h1>Bacumi for Oh My Zsh</h1>
   <p>A focused shell prompt, in Dark and Light.</p>
   <p>
-    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.3">Download 0.3.3 preview</a> ·
+    <a href="https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.4">Download 0.3.4 preview</a> ·
     <a href="#installation">Installation</a> ·
     <a href="BRAND.md">Brand and icons</a> ·
     <a href="LICENSE">MIT license</a>
   </p>
 </div>
 
-**0.3.3 preview.** Clears stale failures on empty Enter in the Bacumi Dark/Light
-developer prompts. Download the ZIP below or install from the Git checkout.
+**0.3.4 preview.** Adds one-command installation and updates from verified release archives. Fixes Lightweight prompt status, color handling and bounded Git checks.
 
 Bacumi brings focused developer information to Zsh: your directory, detailed Git
 state, relevant runtimes and command results. Dark and Light follow the Bacumi
@@ -74,11 +73,25 @@ for 126, `command not found` for 127, `interrupted` for 130, `terminated` for
 143, and `command failed` for other failures. These are exit-code conventions,
 not a diagnosis of an application's error. The full message stays in the
 command's original output; the theme does not capture or repeat it. A successful
-command clears the badge. Compact layouts use a second line when the summary
+command or empty Enter clears the badge. Compact layouts use a second line when the summary
 and essential Git state cannot fit together. Extremely narrow windows shorten
 the summary. The original lightweight prompt retains its numeric `!1` display.
 
 ## Installation
+
+### One command: install or update
+
+Run the same command for a first installation or an update:
+
+```sh
+(set -e; script=$(mktemp "${TMPDIR:-/tmp}/bacumi-install.XXXXXXXX"); trap 'rm -f -- "$script"' EXIT; curl -fsSL https://raw.githubusercontent.com/bacumi-tech/bacumi-oh-my-zsh-theme/main/install-remote.sh -o "$script"; sh "$script")
+```
+
+The script downloads the current versioned preview ZIP, verifies its SHA-256,
+then runs the existing installer. It preserves local edits and `.zshrc`.
+On first install, select your theme in step 3 below; updates keep that selection.
+Open a new terminal tab after updating. Oh My Zsh must already be installed.
+For an isolated or custom installation, append `--custom-dir '/your/custom/path'`.
 
 ### Requirements
 
@@ -89,8 +102,8 @@ Installation from ZIP requires no Git, special font or package manager.
 
 ### 1. Download and extract
 
-Download [bacumi-oh-my-zsh-theme-0.3.3.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.3.3/bacumi-oh-my-zsh-theme-0.3.3.zip)
-from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.3).
+Download [bacumi-oh-my-zsh-theme-0.3.4.zip](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/download/v0.3.4/bacumi-oh-my-zsh-theme-0.3.4.zip)
+from the [GitHub release](https://github.com/bacumi-tech/bacumi-oh-my-zsh-theme/releases/tag/v0.3.4).
 Extract the ZIP and open a terminal in the folder containing `install.sh`.
 
 To verify the ZIP first, download `SHA256SUMS` from the same release into the ZIP's
@@ -296,8 +309,8 @@ python3 scripts/build.py --check
 python3 scripts/build-developer-preview.py --check
 python3 scripts/build-icons.py --check
 python3 scripts/check-brand.py
-sh -n install.sh install-font.sh
-zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh
+sh -n install.sh install-font.sh install-remote.sh
+zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme lib/prompt.zsh lib/developer-prompt.zsh lib/probe.zsh
 python3 -m unittest discover -s tests -v
 python3 scripts/package.py
 python3 scripts/check-package.py

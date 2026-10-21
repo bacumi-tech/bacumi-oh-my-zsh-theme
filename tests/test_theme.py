@@ -11,7 +11,7 @@ ESCAPE = re.compile(r"\x1b\[[0-9;]*[mK]")
 
 
 def run_zsh(script, cwd, mode="dark", env=None):
-    context = {**os.environ, "TERM": "xterm-256color", "COLORTERM": "truecolor", "THEME_FILE": str(ROOT / f"bacumi-{mode}.zsh-theme"), **(env or {})}
+    context = {**os.environ, "TERM": "xterm-256color", "COLORTERM": "truecolor", "NO_COLOR": "", "THEME_FILE": str(ROOT / f"bacumi-{mode}.zsh-theme"), **(env or {})}
     result = subprocess.run(["zsh", "-dfc", 'source "$THEME_FILE" || exit; ' + script], cwd=cwd, env=context, text=True, capture_output=True)
     if result.returncode:
         raise AssertionError(f"Zsh failed ({result.returncode}): {result.stderr}")
@@ -73,6 +73,19 @@ class Prompt(unittest.TestCase):
         dumb = run_zsh('true; _bacumi_precmd; print -rP -- "$PROMPT"', self.cwd, env={"TERM": "dumb", "COLORTERM": ""})
         self.assertNotIn("\x1b", dumb)
 
+    def test_no_color_and_hanging_git(self):
+        for mode in ("dark", "light"):
+            output = run_zsh('true; _bacumi_precmd; print -rP -- "$PROMPT"', self.cwd, mode, {"NO_COLOR": "1"})
+            self.assertNotIn("\x1b", output)
+        fake = self.cwd / "git"
+        fake.write_text("#!/bin/sh\nexec /bin/sleep 10\n")
+        fake.chmod(0o755)
+        result = subprocess.run(["zsh", "-dfc", 'source "$THEME_FILE"; true; _bacumi_precmd; print ready'],
+                                env={**os.environ, "THEME_FILE": str(ROOT / "bacumi-dark.zsh-theme"), "PATH": str(self.cwd)},
+                                executable="/bin/zsh", capture_output=True, text=True, timeout=2)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("ready", result.stdout)
+
     def test_literal_directory_and_branch_do_not_execute_or_expand(self):
         strange = self.cwd / 'spațiu %F{red} $(touch PWNED) `touch OWNED` !'
         strange.mkdir()
@@ -113,7 +126,7 @@ class Prompt(unittest.TestCase):
         import select
         import time
         master, slave = pty.openpty()
-        env = {**os.environ, "TERM": "xterm-256color", "COLORTERM": "truecolor", "THEME_FILE": str(ROOT / "bacumi-dark.zsh-theme")}
+        env = {**os.environ, "TERM": "xterm-256color", "COLORTERM": "truecolor", "NO_COLOR": "", "THEME_FILE": str(ROOT / "bacumi-dark.zsh-theme")}
         shell = subprocess.Popen(["zsh", "-dfi"], cwd=self.cwd, env=env, stdin=slave, stdout=slave, stderr=slave)
         os.close(slave)
         try:

@@ -180,7 +180,7 @@ else:
                 except ProcessLookupError:
                     pass
 
-    def start(self, mode="dark", extra_env=None):
+    def start(self, mode="dark", extra_env=None, lightweight=False):
         (self.home / ".zshrc").write_text('''
 zstyle ':omz:update' mode disabled
 DISABLE_AUTO_UPDATE=true
@@ -188,7 +188,7 @@ DISABLE_UPDATE_PROMPT=true
 ZSH_DISABLE_COMPFIX=true
 plugins=(git extract)
 source "$ZSH/oh-my-zsh.sh"
-(( $+functions[_bacumi_developer_precmd] )) || exit 91
+(( $+functions[_bacumi_developer_precmd] || $+functions[_bacumi_precmd] )) || exit 91
 PROMPT+=$'%{\\e]777;bacumi-test-ready\\a%}'
 bacumi_test_preexec() { print -rn -- $'\\e]777;bacumi-test-exec\\a'; }
 preexec_functions+=(bacumi_test_preexec)
@@ -200,7 +200,7 @@ preexec_functions+=(bacumi_test_preexec)
         env.update({"HOME": str(self.home), "ZDOTDIR": str(self.home),
                     "ZSH": os.environ["BACUMI_OMZ_DIR"], "ZSH_CUSTOM": str(self.custom),
                     "ZSH_CACHE_DIR": str(self.cwd / "cache"), "ZSH_COMPDUMP": str(self.cwd / "compdump"),
-                    "ZSH_THEME": f"bacumi/bacumi-developer-{mode}",
+                    "ZSH_THEME": f"bacumi/bacumi-{'' if lightweight else 'developer-'}{mode}",
                     "TERM": "xterm-256color", "COLORTERM": "truecolor", "NO_COLOR": "",
                     "PATH": str(self.tools) + os.pathsep + os.defpath,
                     "PROBE_LOG": str(self.probe_log), "BACUMI_COLOR_MODE": "none",
@@ -217,12 +217,17 @@ preexec_functions+=(bacumi_test_preexec)
         self.assertIn("PWD=" + str(directory) + "\r\n", output)
 
     def test_empty_enter_clears_previous_failure(self):
-        session = self.start()
-        self.assertIn("!1 command failed", session.command("false"))
-        for blank in ("", "   ", ""):
-            session.send(blank + "\n")
-            self.assertNotIn("command failed", session.read_until())
-        self.assertIn("!1 command failed", session.command("false"))
+        for lightweight in (False, True):
+            for mode in ("dark", "light"):
+                with self.subTest(lightweight=lightweight, mode=mode):
+                    session = self.start(mode, lightweight=lightweight)
+                    self.assertIn("!1", session.command("false"))
+                    for blank in ("", "   ", ""):
+                        session.send(blank + "\n")
+                        self.assertNotIn("!1", session.read_until())
+                    self.assertIn("!1", session.command("false"))
+                    self.assertIn("saved-exit=1", session.command('print -r -- "saved-exit=$?"'))
+                    session.close()
 
     def test_small_version_files_return_prompt_without_consuming_input(self):
         files = {"global.json": '{"sdk":{"version":"8.0.100"}}\n',

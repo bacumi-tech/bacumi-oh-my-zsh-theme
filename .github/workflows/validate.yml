@@ -27,7 +27,7 @@ jobs:
       - run: python3 scripts/build-developer-preview.py --check
       - run: python3 scripts/build-icons.py --check
       - run: python3 scripts/check-brand.py
-      - run: sh -n install.sh install-font.sh && zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/prompt.zsh lib/developer-prompt.zsh
+      - run: sh -n install.sh install-font.sh install-remote.sh && zsh -n bacumi-dark.zsh-theme bacumi-light.zsh-theme bacumi-developer-dark.zsh-theme bacumi-developer-light.zsh-theme lib/prompt.zsh lib/developer-prompt.zsh lib/probe.zsh
       - name: Prompt, installer and real Oh My Zsh integration
         env:
           BACUMI_OMZ_DIR: ${{ github.workspace }}/.upstream/ohmyzsh

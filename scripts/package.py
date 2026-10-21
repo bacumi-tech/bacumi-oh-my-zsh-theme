@@ -16,6 +16,7 @@ files += [f"assets/icons/icon-{mode}.svg" for mode in ("dark", "light")]
 files += [f"assets/icons/icon-{mode}-{size}.png" for mode in ("dark", "light") for size in (16, 32, 128, 256, 512, 1024)]
 files += ["fonts/meslolgs-nf.tsv", "fonts/LICENSE-MesloLGS-NF.txt", "fonts/Apache-2.0.txt", "fonts/NOTICE.txt"]
 files += ["install-font.sh", "bacumi-developer-dark.zsh-theme", "bacumi-developer-light.zsh-theme", "lib/developer-prompt.zsh"]
+files += ["lib/probe.zsh", "install-remote.sh"]
 files += ["assets/developer-dark.svg", "assets/developer-light.svg"]
 out = ROOT / "out"
 out.mkdir(exist_ok=True)

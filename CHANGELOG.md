@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4 — 2026-10-21 (preview)
+
+- Add one-command install/update using versioned release ZIPs and SHA-256 verification.
+- Clear stale failures in Lightweight, honor NO_COLOR and bound Git probes.
+- Share the existing bounded probe implementation and recover interrupted theme updates.
+
 ## 0.3.3 — 2026-10-21 (preview)
 
 - Clear the previous failure summary on empty or whitespace-only Enter.
